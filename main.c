@@ -21,6 +21,9 @@
     MCLK/7 (7.67MHz, standard) and MCLK/5 (10.74MHz)
 
     TMSS skip: automatic
+
+    Z80 overclocking: Hold C+Start for 1 second to toggle between
+    MCLK/15 (3.58MHz, standard) and MCLK/7 (7.67MHz)
  */
 
 #include <stdio.h>
@@ -52,6 +55,7 @@
 #define GPIO_VCLK_PIN 20        // CPU clock, for overclocking, optional
 #define GPIO_MCLK_PIN 21        // To master oscillator clock in
 #define GPIO_OC_LED_PIN 22
+#define GPIO_Z80_CLK_PIN 24     // New: Z80 clock output
 
 #define PAD_A (1 << 0)
 #define PAD_B (1 << 1)
@@ -88,6 +92,7 @@ volatile uint32_t reset_press = 0;
 volatile uint32_t reset_timeout = 0;
 uint32_t region_swap = 0;
 volatile bool oc_on = false;
+volatile bool z80_oc_on = false; // New: Z80 overclock flag
 volatile int led_mode = 0;
 volatile int tmssrun = 0;
 volatile bool is_booted = false;
@@ -162,6 +167,7 @@ void set_japan()
 {
     set_mclk_ntsc();
     set_vclk_div(7);
+    clock_gpio_init(GPIO_Z80_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, z80_oc_on ? 14 : 30); // New: Set Z80 clock
     gpio_put(GPIO_STANDARD_PIN, true);
     gpio_put(GPIO_REGION_PIN, false);
     controleuro = 0;
@@ -173,6 +179,7 @@ void set_americas()
 {
     set_mclk_ntsc();
     set_vclk_div(7);
+    clock_gpio_init(GPIO_Z80_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, z80_oc_on ? 14 : 30); // New: Set Z80 clock
     gpio_put(GPIO_STANDARD_PIN, true);
     gpio_put(GPIO_REGION_PIN, true);
     controleuro = 0;
@@ -184,6 +191,7 @@ void set_europe()
 {
     set_mclk_pal();
     set_vclk_div(7);
+    clock_gpio_init(GPIO_Z80_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, z80_oc_on ? 14 : 30); // New: Set Z80 clock
     gpio_put(GPIO_STANDARD_PIN, false);
     gpio_put(GPIO_REGION_PIN, true);
     controleuro = 1;
@@ -195,6 +203,7 @@ void set_europe60()
 {
     set_mclk_ntsc();
     set_vclk_div(7);
+    clock_gpio_init(GPIO_Z80_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, z80_oc_on ? 14 : 30); // New: Set Z80 clock
     gpio_put(GPIO_STANDARD_PIN, true);
     controleuro = 1;
 }
@@ -204,6 +213,7 @@ void set_europe50()
 {
     set_mclk_pal();
     set_vclk_div(7);
+    clock_gpio_init(GPIO_Z80_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, z80_oc_on ? 14 : 30); // New: Set Z80 clock
     gpio_put(GPIO_STANDARD_PIN, false);
     controleuro = 1;
 }
@@ -377,7 +387,7 @@ int main() {
     // VRES
     gpio_init(GPIO_VRES_PIN);
 
-     // BTRES
+    // BTRES
     gpio_init(GPIO_BTRES_PIN);
     gpio_set_dir(GPIO_BTRES_PIN, GPIO_IN);
     gpio_pull_down (GPIO_BTRES_PIN);
@@ -453,6 +463,8 @@ int main() {
     gpio_set_slew_rate(GPIO_MCLK_PIN, GPIO_SLEW_RATE_SLOW);
     gpio_set_drive_strength(GPIO_VCLK_PIN, GPIO_DRIVE_STRENGTH_8MA);
     gpio_set_slew_rate(GPIO_VCLK_PIN, GPIO_SLEW_RATE_SLOW);
+    gpio_set_drive_strength(GPIO_Z80_CLK_PIN, GPIO_DRIVE_STRENGTH_8MA); // New: Set drive for Z80 clock
+    gpio_set_slew_rate(GPIO_Z80_CLK_PIN, GPIO_SLEW_RATE_SLOW); // New: Set slew for Z80 clock
 
     // Controller pin 7 & install input handler
     gpio_init(GPIO_SELECT_PIN);
@@ -559,6 +571,18 @@ int main() {
                 set_vclk_div((oc_on) ? 5 : 7);
                 halt_off();
                 gpio_put(GPIO_OC_LED_PIN, oc_on);
+            }
+        }
+
+       // C + Start for 1 seconds: toggle Z80 overclock // New
+        while((pad == (PAD_C | PAD_S))) {
+            sleep_ms(1);
+            request++;
+            if(request == 1000) {
+                z80_oc_on = !z80_oc_on;
+                halt_on(); // Halt 68k for safety during clock change
+                clock_gpio_init(GPIO_Z80_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, z80_oc_on ? 14 : 30);
+                halt_off();
             }
         }
               

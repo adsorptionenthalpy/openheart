@@ -23,7 +23,7 @@
     TMSS skip: automatic
 
     Z80 overclocking: Hold C+Start for 1 second to toggle between
-    MCLK/15 (3.58MHz, standard) and MCLK/7 (7.67MHz)
+    MCLK/15 (3.58MHz, standard) and MCLK/7 (7.67MHz). PSG clock remains at stock 3.58MHz.
  */
 
 #include <stdio.h>
@@ -56,6 +56,7 @@
 #define GPIO_MCLK_PIN 21        // To master oscillator clock in
 #define GPIO_OC_LED_PIN 22
 #define GPIO_Z80_CLK_PIN 24     // New: Z80 clock output
+#define GPIO_PSG_CLK_PIN 25     // New: PSG clock output (fixed at stock speed)
 
 #define PAD_A (1 << 0)
 #define PAD_B (1 << 1)
@@ -168,6 +169,7 @@ void set_japan()
     set_mclk_ntsc();
     set_vclk_div(7);
     clock_gpio_init(GPIO_Z80_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, z80_oc_on ? 14 : 30); // New: Set Z80 clock
+    clock_gpio_init(GPIO_PSG_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, 30); // New: Set fixed PSG clock
     gpio_put(GPIO_STANDARD_PIN, true);
     gpio_put(GPIO_REGION_PIN, false);
     controleuro = 0;
@@ -180,6 +182,7 @@ void set_americas()
     set_mclk_ntsc();
     set_vclk_div(7);
     clock_gpio_init(GPIO_Z80_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, z80_oc_on ? 14 : 30); // New: Set Z80 clock
+    clock_gpio_init(GPIO_PSG_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, 30); // New: Set fixed PSG clock
     gpio_put(GPIO_STANDARD_PIN, true);
     gpio_put(GPIO_REGION_PIN, true);
     controleuro = 0;
@@ -192,6 +195,7 @@ void set_europe()
     set_mclk_pal();
     set_vclk_div(7);
     clock_gpio_init(GPIO_Z80_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, z80_oc_on ? 14 : 30); // New: Set Z80 clock
+    clock_gpio_init(GPIO_PSG_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, 30); // New: Set fixed PSG clock
     gpio_put(GPIO_STANDARD_PIN, false);
     gpio_put(GPIO_REGION_PIN, true);
     controleuro = 1;
@@ -204,6 +208,7 @@ void set_europe60()
     set_mclk_ntsc();
     set_vclk_div(7);
     clock_gpio_init(GPIO_Z80_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, z80_oc_on ? 14 : 30); // New: Set Z80 clock
+    clock_gpio_init(GPIO_PSG_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, 30); // New: Set fixed PSG clock
     gpio_put(GPIO_STANDARD_PIN, true);
     controleuro = 1;
 }
@@ -214,6 +219,7 @@ void set_europe50()
     set_mclk_pal();
     set_vclk_div(7);
     clock_gpio_init(GPIO_Z80_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, z80_oc_on ? 14 : 30); // New: Set Z80 clock
+    clock_gpio_init(GPIO_PSG_CLK_PIN, CLOCKS_CLK_GPOUT1_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, 30); // New: Set fixed PSG clock
     gpio_put(GPIO_STANDARD_PIN, false);
     controleuro = 1;
 }
@@ -465,6 +471,8 @@ int main() {
     gpio_set_slew_rate(GPIO_VCLK_PIN, GPIO_SLEW_RATE_SLOW);
     gpio_set_drive_strength(GPIO_Z80_CLK_PIN, GPIO_DRIVE_STRENGTH_8MA); // New: Set drive for Z80 clock
     gpio_set_slew_rate(GPIO_Z80_CLK_PIN, GPIO_SLEW_RATE_SLOW); // New: Set slew for Z80 clock
+    gpio_set_drive_strength(GPIO_PSG_CLK_PIN, GPIO_DRIVE_STRENGTH_8MA); // New: Set drive for PSG clock
+    gpio_set_slew_rate(GPIO_PSG_CLK_PIN, GPIO_SLEW_RATE_SLOW); // New: Set slew for PSG clock
 
     // Controller pin 7 & install input handler
     gpio_init(GPIO_SELECT_PIN);
